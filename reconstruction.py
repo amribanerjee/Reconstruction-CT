@@ -90,7 +90,7 @@ def improve_resolution(image, scale_factor=2):
 # Removed display_images function as it's no longer needed for direct output
 
 def main():
-    image_path = 'image-00200.jpg'
+    image_path = ''
     output_image_path = 'final_processed_image.png' # Define output path
 
     original_image = load_image(image_path)
