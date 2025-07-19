@@ -2,82 +2,105 @@ import numpy as np
 from skimage import io, color, transform, util
 from skimage.metrics import structural_similarity as ssim_metric
 import sys
+import os
 
-def load_image(image_path):
-    print(f"Loading image from: {image_path}")
+def load_img(img_path):
+    print(f"Loading image from: {img_path}")
+    if not os.path.exists(img_path):
+        print(f"Error: File not found at {img_path}.")
+        return None
     try:
-        original_image = io.imread(image_path)
-        if original_image.ndim == 3:
-            original_image = color.rgb2gray(original_image)
-        original_image = util.img_as_float64(original_image)
-        print(f"Image loaded successfully. Shape: {original_image.shape}, Dtype: {original_image.dtype}")
-        return original_image
-    except FileNotFoundError:
-        print("Error: File not found. Please ensure the image path is correct.")
-        sys.exit()
-    except Exception as e:
-        print(f"An error occurred during image loading: {e}")
-        sys.exit()
-
-def calculate_mse(image1, image2):
-    if image1.shape != image2.shape:
-        print("Warning: Images have different dimensions. Resizing the larger image to match the smaller one for MSE calculation.")
-        if image1.size > image2.size:
-            image1 = transform.resize(image1, image2.shape, anti_aliasing=True)
+        raw_img_data = io.imread(img_path)
+        if raw_img_data.ndim == 3:
+            gray_img = color.rgb2gray(raw_img_data)
         else:
-            image2 = transform.resize(image2, image1.shape, anti_aliasing=True)
+            gray_img = raw_img_data
+
+        float_img = util.img_as_float64(gray_img)
+        print(f"Image loaded. Shape: {float_img.shape}, Dtype: {float_img.dtype}")
+        return float_img
+    except Exception as e:
+        print(f"Error loading image: {e}")
+        return None
+
+def calc_mse(img1, img2):
+    work_img1 = img1.copy()
+    work_img2 = img2.copy()
+
+    if work_img1.shape != work_img2.shape:
+        print("Warning: Image dimensions differ. Resizing for MSE calculation.")
+        if work_img1.size > work_img2.size:
+            work_img1 = transform.resize(work_img1, work_img2.shape, anti_aliasing=True)
+        else:
+            work_img2 = transform.resize(work_img2, work_img1.shape, anti_aliasing=True)
             
-    err = np.sum((image1.astype("float") - image2.astype("float")) ** 2)
-    err /= float(image1.shape[0] * image1.shape[1])
-    return err
+    pix_diff_sq = (work_img1.astype("float") - work_img2.astype("float")) ** 2
+    total_err_sum = np.sum(pix_diff_sq)
+    num_pix = float(work_img1.shape[0] * work_img1.shape[1])
+    mse_val = total_err_sum / num_pix
+    return mse_val
 
-def calculate_rmse(image1, image2):
-    mse = calculate_mse(image1, image2)
-    rmse = np.sqrt(mse)
-    return rmse
+def calc_rmse(img_a, img_b):
+    mse = calc_mse(img_a, img_b)
+    rmse_val = np.sqrt(mse)
+    return rmse_val
 
-def calculate_psnr(image1, image2):
-    mse = calculate_mse(image1, image2)
-    if mse == 0:
+def calc_psnr(img_one, img_two):
+    curr_mse = calc_mse(img_one, img_two)
+    if curr_mse == 0:
         return float('inf')
     
-    max_pixel_value = 1.0 
-    psnr = 10 * np.log10((max_pixel_value ** 2) / mse)
-    return psnr
+    max_pix_val = 1.0 
+    psnr_out = 10 * np.log10((max_pix_val ** 2) / curr_mse)
+    return psnr_out
 
-def calculate_ssim(image1, image2):
-    if image1.shape != image2.shape:
-        print("Warning: Images have different dimensions. Resizing the larger image to match the smaller one for SSIM calculation.")
-        if image1.size > image2.size:
-            image1 = transform.resize(image1, image2.shape, anti_aliasing=True)
+def eval_ssim(img_src, img_tgt):
+    work_src_img = img_src.copy()
+    work_tgt_img = img_tgt.copy()
+
+    if work_src_img.shape != work_tgt_img.shape:
+        print("Warning: Image dimensions differ. Resizing for SSIM calculation.")
+        if work_src_img.size > work_tgt_img.size:
+            work_src_img = transform.resize(work_src_img, work_tgt_img.shape, anti_aliasing=True)
         else:
-            image2 = transform.resize(image2, image1.shape, anti_aliasing=True)
+            work_tgt_img = transform.resize(work_tgt_img, work_src_img.shape, anti_aliasing=True)
             
-    ssim_value = ssim_metric(image1, image2, data_range=image1.max() - image1.min())
-    return ssim_value
+    ssim_res = ssim_metric(work_src_img, work_tgt_img, data_range=work_src_img.max() - work_src_img.min())
+    return ssim_res
 
-def main():
-    original_image_path = ''
-    comparison_image_path = ''
+def run_img_comp_metrics():
+    orig_img_loc = ''
+    comp_img_loc = ''
 
-    if not original_image_path or not comparison_image_path:
-        print("Error: Image paths are not defined. Please set 'original_image_path' and 'comparison_image_path' variables in the main function.")
+    if not orig_img_loc or not comp_img_loc:
+        print("Error: Image paths not defined. Set 'orig_img_loc' and 'comp_img_loc'.")
         sys.exit()
 
-    original_image = load_image(original_image_path)
-    comparison_image = load_image(comparison_image_path)
+    orig_img = load_img(orig_img_loc)
+    comp_img = load_img(comp_img_loc)
 
-    mse_value = calculate_mse(original_image, comparison_image)
-    print(f"\nMean Squared Error (MSE) between '{original_image_path}' and '{comparison_image_path}': {mse_value:.4f}")
+    if orig_img is None or comp_img is None:
+        print("Image loading failed. Exiting.")
+        sys.exit()
 
-    rmse_value = calculate_rmse(original_image, comparison_image)
-    print(f"Root Mean Squared Error (RMSE) between '{original_image_path}' and '{comparison_image_path}': {rmse_value:.4f}")
+    print("\n--- Image Comparison Results ---")
 
-    psnr_value = calculate_psnr(original_image, comparison_image)
-    print(f"Peak Signal-to-Noise Ratio (PSNR) between '{original_image_path}' and '{comparison_image_path}': {psnr_value:.4f} dB")
+    mse = calc_mse(orig_img, comp_img)
+    print(f"MSE ('{os.path.basename(orig_img_loc)}' vs '{os.path.basename(comp_img_loc)}'): {mse:.4f}")
 
-    ssim_value = calculate_ssim(original_image, comparison_image)
-    print(f"Structural Similarity Index (SSIM) between '{original_image_path}' and '{comparison_image_path}': {ssim_value:.4f}")
+    rmse = calc_rmse(orig_img, comp_img)
+    print(f"RMSE: {rmse:.4f}")
+
+    psnr = calc_psnr(orig_img, comp_img)
+    if psnr == float('inf'):
+        print(f"PSNR: Infinity (images identical)")
+    else:
+        print(f"PSNR: {psnr:.4f} dB")
+
+    ssim = eval_ssim(orig_img, comp_img)
+    print(f"SSIM: {ssim:.4f}")
+    print("-----------------------------------\n")
+
 
 if __name__ == "__main__":
-    main()
+    run_img_comp_metrics()
