@@ -4,109 +4,94 @@ from skimage import io, color, transform, restoration, filters, util
 from scipy.ndimage import median_filter, gaussian_filter
 from scipy.signal import convolve2d
 import sys
+import os
 
-def load_image(image_path):
-    print(f"Loading image from: {image_path}")
+def load_image(file_path):
     try:
-        original_image = io.imread(image_path)
-        if original_image.ndim == 3:
-            original_image = color.rgb2gray(original_image)
-        original_image = util.img_as_float64(original_image)
-        print(f"Image loaded successfully. Shape: {original_image.shape}, Dtype: {original_image.dtype}")
-        return original_image
+        raw_img = io.imread(file_path)
+        if raw_img.ndim == 3:
+            gray_img = color.rgb2gray(raw_img)
+        else:
+            gray_img = raw_img
+        return util.img_as_float64(gray_img)
     except FileNotFoundError:
-        print("File not found")
-        sys.exit()
+        sys.exit(1)
     except Exception as e:
-        print(f"An error occurred during image loading: {e}")
-        sys.exit()
+        sys.exit(1)
 
-def denoise_image_fourier(image):
-    print("\n--- Applying Denoising (Fourier Transform) ---")
-    f_transform = np.fft.fft2(image)
-    f_transform_shifted = np.fft.fftshift(f_transform)
+def denoise_fourier_transform(input_img):
+    f_transform = np.fft.fft2(input_img)
+    f_shift = np.fft.fftshift(f_transform)
 
-    rows, cols = image.shape
-    crow, ccol = rows // 2, cols // 2
+    rows, cols = input_img.shape
+    c_row, c_col = rows // 2, cols // 2
     radius = min(rows, cols) // 6
 
-    mask = np.zeros((rows, cols), dtype=np.uint8)
-    for i in range(rows):
-        for j in range(cols):
-            if np.sqrt((i - crow)**2 + (j - ccol)**2) < radius:
-                mask[i, j] = 1
+    y_coords, x_coords = np.ogrid[-c_row:rows-c_row, -c_col:cols-c_col]
+    mask = (x_coords**2 + y_coords**2 <= radius**2)
 
-    f_transform_filtered = f_transform_shifted * mask
-    f_transform_filtered_shifted_back = np.fft.ifftshift(f_transform_filtered)
-    denoised_image = np.fft.ifft2(f_transform_filtered_shifted_back)
-    denoised_image = np.real(denoised_image)
-    print("Denoising complete.")
-    return denoised_image
+    f_filtered = f_shift * mask
+    f_filtered_shifted_back = np.fft.ifftshift(f_filtered)
+    denoised_img = np.fft.ifft2(f_filtered_shifted_back)
+    
+    return np.real(denoised_img)
 
-def remove_artifacts_radon(image):
-    print("\n--- Applying Artifact Removal (Radon Transform) ---")
-    theta = np.linspace(0., 180., max(image.shape), endpoint=False)
-    sinogram = transform.radon(image, theta=theta)
+def remove_radon_streaks(input_img):
+    angles = np.linspace(0., 180., max(input_img.shape), endpoint=False)
+    sino = transform.radon(input_img, theta=angles)
 
-    filtered_sinogram = median_filter(sinogram, size=3)
+    smoothed_sino = median_filter(sino, size=3)
 
-    reconstructed_image_radon = transform.iradon(filtered_sinogram, theta=theta, filter_name='ramp')
-    reconstructed_image_radon = np.clip(reconstructed_image_radon, 0, 1)
-    print("Artifact removal (via Radon transform and sinogram filtering) complete.")
-    return reconstructed_image_radon
+    reconstructed_img = transform.iradon(smoothed_sino, theta=angles, filter_name='ramp')
+    return np.clip(reconstructed_img, 0, 1)
 
-def enhance_edges_unsharp_masking(image):
-    print("\n--- Applying Edge Enhancement (Unsharp Masking) ---")
-    blurred_for_mask = gaussian_filter(image, sigma=1)
-    detail_mask = image - blurred_for_mask
-    sharpening_amount = 1.5
-    edge_enhanced_image = image + detail_mask * sharpening_amount
-    edge_enhanced_image = np.clip(edge_enhanced_image, 0, 1)
-    print("Edge enhancement (Unsharp Masking) complete.")
-    return edge_enhanced_image
+def sharpen_image_unsharp(original_img):
+    blurred_img = gaussian_filter(original_img, sigma=1)
+    detail_mask = original_img - blurred_img
 
-def improve_resolution(image, scale_factor=2):
-    print("\n--- Applying Resolution Improvement ---")
+    sharpen_amt = 1.5
+    sharpened_img = original_img + detail_mask * sharpen_amt
+    
+    return np.clip(sharpened_img, 0, 1)
 
-    print("Interpolation for resolution improvement complete.")
-    interpolated_image = transform.resize(
-        image,
-        (image.shape[0] * scale_factor, image.shape[1] * scale_factor),
+def upscale_and_deconvolve_image(low_res_img, scale_factor=2):
+    upscaled_img = transform.resize(
+        low_res_img,
+        (low_res_img.shape[0] * scale_factor, low_res_img.shape[1] * scale_factor),
         anti_aliasing=True
     )
 
     psf_size = 21
-    psf_sigma = 3
+    psf_std = 3
     psf = np.zeros((psf_size, psf_size))
     psf[psf_size // 2, psf_size // 2] = 1
-    psf = gaussian_filter(psf, sigma=psf_sigma)
+    psf = gaussian_filter(psf, sigma=psf_std)
     psf /= psf.sum()
 
-    deconvolved_image = restoration.wiener(interpolated_image, psf, balance=0.005)
-    deconvolved_image = np.clip(deconvolved_image, 0, 1)
-    print("Deconvolution for sharpening complete.")
-    return deconvolved_image
+    deblurred_img = restoration.wiener(upscaled_img, psf, balance=0.005)
+    
+    return np.clip(deblurred_img, 0, 1)
 
-# Removed display_images function as it's no longer needed for direct output
+def run_image_enhancement_pipeline():
+    in_file = ''
+    out_file = 'enhanced_result.png'
 
-def main():
-    image_path = ''
-    output_image_path = 'final_processed_image.png' # Define output path
+    if not in_file:
+        sys.exit(1)
 
-    original_image = load_image(image_path)
-    current_image = original_image
+    initial_img = load_image(in_file)
+    
+    current_img_state = initial_img
 
-    current_image = denoise_image_fourier(current_image)
-    current_image = remove_artifacts_radon(current_image)
-    current_image = enhance_edges_unsharp_masking(current_image)
-    final_processed_image = improve_resolution(current_image)
-
-    # Save the final processed image
-    io.imsave(output_image_path, util.img_as_ubyte(final_processed_image))
-    print(f"\nFinal processed image saved to: {output_image_path}")
-
-    print("\nAll image processing techniques applied.")
-    print("Only the Final Processed Image has been saved to a file.")
+    current_img_state = denoise_fourier_transform(current_img_state)
+    current_img_state = remove_radon_streaks(current_img_state)
+    current_img_state = sharpen_image_unsharp(current_img_state)
+    final_output = upscale_and_deconvolve_image(current_img_state)
+    
+    try:
+        io.imsave(out_file, util.img_as_ubyte(final_output))
+    except Exception as e:
+        sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    run_image_enhancement_pipeline()
