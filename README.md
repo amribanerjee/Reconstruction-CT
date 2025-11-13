@@ -295,28 +295,3 @@ sequenceDiagram
 ```
 
 ---
-
-### ⚠️ Practical Recommendations
-
-```card
-{
-    "title": "Input Requirements",
-    "content": "Input images must be readable and in grayscale or RGB. The pipeline expects float-normalized images."
-}
-```
-
-```card
-{
-    "title": "Pipeline Customization",
-    "content": "You can tune filter sizes, sharpening amount, and upscaling factors for different images or use cases."
-}
-```
-
----
-
-```card
-{
-    "title": "Contributions Welcome",
-    "content": "Enhance or extend these modules for your needs—feel free to contribute improvements and new features!"
-}
-```
