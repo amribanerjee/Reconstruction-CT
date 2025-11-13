@@ -33,26 +33,6 @@ This module provides utilities for quantitatively comparing two images. It compu
 | `run_img_comp_metrics` | Loads two images and prints all error metrics                            |
 
 ---
-
-### 🧩 Code Architecture
-
-#### High-Level Workflow
-
-```mermaid
-flowchart TD
-    A[User defines image paths] --> B[run_img_comp_metrics]
-    B --> C[load_img (original)]
-    B --> D[load_img (compressed)]
-    C --> E[calc_mse]
-    D --> E
-    E --> F[calc_rmse]
-    E --> G[calc_psnr]
-    E --> H[eval_ssim]
-    F --> I[Print Results]
-    G --> I
-    H --> I
-```
-
 ---
 
 ### Function Details
