@@ -43,16 +43,10 @@ Ensure the following Python packages are installed:
 # Install the necessary Python libraries
 pip install numpy scikit-image scipy matplotlib
 ```
-###2. Image Enhancement (reconstruction.py)
-```bash
-#2. Image Enhancement (reconstruction.py)
-
-This script runs the full refinement pipeline on a single image.
-
-Edit reconstruction.py:
-Set the path for your input image in the in_file variable and the desired output path in out_file.
+2. Image Enhancement (reconstruction.py)
 # reconstruction.py snippet
 in_file = 'path/to/your/input_image.png' 
 out_file = 'enhanced_result.png' 
+
 
 
