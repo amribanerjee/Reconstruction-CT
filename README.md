@@ -123,16 +123,6 @@ SSIM: 0.92
 | SSIM      | Structural similarity (perceptual)                            | -1 to 1; 1=identical   |
 
 ---
-
-### 🟡 Notes and Recommendations
-
-```card
-{
-    "title": "Metric Limitations",
-    "content": "Always inspect images visually in addition to metrics—numbers alone can't capture all quality differences."
-}
-```
-
 ---
 
 ## reconstruction.py
