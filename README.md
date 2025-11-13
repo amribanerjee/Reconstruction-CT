@@ -1,21 +1,44 @@
-This project provides a robust Python-based pipeline for advanced image enhancement, reconstruction, and quality evaluation. It includes functions for denoising, streak removal, sharpening, upscaling, deconvolution, and calculating key image quality metrics like MSE, PSNR, and SSIM.
+# **Advanced Image Reconstruction and Evaluation Toolkit** 🖼️
+### *Multi-Step Image Enhancement and Quality Assessment Pipeline*
 
-✨ Key Features
-Multi-Step Enhancement Pipeline: A sequential process in reconstruction.py that applies:
+---
 
-Fourier-based Denoising: Selective filtering in the frequency domain.
+### **From the Developer**
 
-Radon Streak Removal: Uses Radon/Inverse Radon transform with median filtering to remove linear artifacts.
+This toolkit provides a robust, two-part Python solution for advanced image processing: **Enhancement** (denoising, streak removal, sharpening, and deconvolution) and **Evaluation** (calculating quality metrics like MSE, PSNR, and SSIM).
 
-Unsharp Mask Sharpening: Enhances image details.
+---
 
-Super-Resolution & Deconvolution: Upscales the image and applies a Wiener filter for deblurring.
+### **Project Files**
+* **`reconstruction.py`**: The main image enhancement pipeline.
+* **`error-metrics.py`**: Tools for comparing two images and calculating quality scores.
 
-Comprehensive Evaluation Metrics: The error-metrics.py script calculates standard image comparison scores:
+---
 
-Mean Squared Error (MSE) and Root Mean Squared Error (RMSE)
+## 🚀 Tech Stack
 
-Peak Signal-to-Noise Ratio (PSNR)
+| Area | Tools Used |
+|------|------------|
+| Core Language | **Python** |
+| Image Processing | **Scikit-Image (skimage)** |
+| Scientific Computing | **NumPy**, **SciPy** (ndimage, signal) |
+| Visualization (Implied) | **Matplotlib** |
 
-Structural Similarity Index (SSIM)
+---
 
+## ⚙️ Dependencies
+Ensure the following Python packages are installed:
+* `numpy`
+* `scikit-image`
+* `scipy`
+* `matplotlib`
+
+---
+
+## 🧑‍💻 How to Run the Application
+
+### 1. Installation
+
+```bash
+# Install the necessary Python libraries
+pip install numpy scikit-image scipy matplotlib
